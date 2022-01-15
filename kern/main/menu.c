@@ -167,6 +167,63 @@ cmd_chdir(int nargs, char **args)
 }
 
 /*
+ * Command for turning on first debug flag
+ */
+
+static
+int
+cmd_dbf_set(int nargs, char **args)
+{
+	if (nargs != 3) {
+		kprintf("Usage: df nr on/off\n");
+		return EINVAL;
+	}
+	
+	if (strcmp(args[1], "1") == 0){
+		dbflags += DB_LOCORE;
+	}
+	else if (strcmp(args[1], "2") == 0){
+		dbflags += DB_SYSCALL;
+	}
+	else if (strcmp(args[1], "3") == 0){
+		dbflags += DB_INTERRUPT;
+	}
+	else if (strcmp(args[1], "4") == 0){
+		dbflags += DB_DEVICE;
+	}
+	else if (strcmp(args[1], "5") == 0){
+		dbflags += DB_THREADS;
+	}
+	else if (strcmp(args[1], "6") == 0){
+		dbflags += DB_VM;
+	}
+	else if (strcmp(args[1], "7") == 0){
+		dbflags += DB_EXEC;
+	}
+	else if (strcmp(args[1], "8") == 0){
+		dbflags += DB_VFS;
+	}
+	else if (strcmp(args[1], "9") == 0){
+		dbflags += DB_SFS;
+	}
+	else if (strcmp(args[1], "10") == 0){
+		dbflags += DB_NET;
+	}
+	else if (strcmp(args[1], "11") == 0){
+		dbflags += DB_NETFS;
+	}
+	else if (strcmp(args[1], "12") == 0){
+		dbflags += DB_KMALLOC;
+	}
+	else{
+		kprintf("Flag number not in range (1-12). Usage: df nr on/off\n");
+		return EINVAL;
+	}
+	
+	return 0;
+}
+
+/*
  * Command for printing the current directory.
  */
 static
@@ -380,6 +437,7 @@ showmenu(const char *name, const char *x[])
 static const char *opsmenu[] = {
 	"[s]       Shell                     ",
 	"[p]       Other program             ",
+	"[dbflags] Debug flags               ",
 	"[mount]   Mount a filesystem        ",
 	"[unmount] Unmount a filesystem      ",
 	"[bootfs]  Set \"boot\" filesystem     ",
@@ -391,6 +449,42 @@ static const char *opsmenu[] = {
 	"[q]       Quit and shut down        ",
 	NULL
 };
+
+////////////////////////////////////
+//// DEBUG FLAGS MENU
+////////////////////////////////////
+
+static const char *dbfmenu[] = {
+	"[df 1 on/off]       DB_LOCORE         ",
+	"[df 2 on/off]       DB_SYSCALL        ",
+	"[df 3 on/off]       DB_INTERRUPT      ",
+	"[df 4 on/off]       DB_DEVICE         ",
+	"[df 5 on/off]       DB_THREADS        ",
+	"[df 6 on/off]       DB_VM             ",
+	"[df 7 on/off]       DB_EXEC           ",
+	"[df 8 on/off]       DB_VFS            ",
+	"[df 9 on/off]       DB_SFS            ",
+	"[df 10 on/off]      DB_NET            ",
+	"[df 11 on/off]      DB_NETFS          ",
+	"[df 12 on/off]      DB_KMALLOC        ",
+	NULL
+};
+
+/*
+ * Command for showing the debug flag menu
+ */
+static
+int
+cmd_dbflags(int n, char **a)
+{
+	(void)n;
+	(void)a;
+
+	showmenu("OS/161 Debug flags", dbfmenu);
+
+	kprintf("Current value of dbflags is 0x%03x \n", dbflags);
+	return 0;
+}
 
 static
 int
@@ -482,9 +576,13 @@ static struct {
 	{ "?o",		cmd_opsmenu },
 	{ "?t",		cmd_testmenu },
 
+	/* debug flags */
+	{ "df",     cmd_dbf_set},
+
 	/* operations */
 	{ "s",		cmd_shell },
 	{ "p",		cmd_prog },
+	{ "dbflags",cmd_dbflags},
 	{ "mount",	cmd_mount },
 	{ "unmount",	cmd_unmount },
 	{ "bootfs",	cmd_bootfs },
