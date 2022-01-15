@@ -180,40 +180,76 @@ cmd_dbf_set(int nargs, char **args)
 	}
 	
 	if (strcmp(args[1], "1") == 0){
-		dbflags += DB_LOCORE;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_LOCORE;
+		else
+			dbflags -= DB_LOCORE;
 	}
 	else if (strcmp(args[1], "2") == 0){
-		dbflags += DB_SYSCALL;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_SYSCALL;
+		else
+			dbflags -= DB_SYSCALL;
 	}
 	else if (strcmp(args[1], "3") == 0){
-		dbflags += DB_INTERRUPT;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_INTERRUPT;
+		else
+			dbflags -= DB_INTERRUPT;
 	}
 	else if (strcmp(args[1], "4") == 0){
-		dbflags += DB_DEVICE;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_DEVICE;
+		else
+			dbflags -= DB_DEVICE;
 	}
 	else if (strcmp(args[1], "5") == 0){
-		dbflags += DB_THREADS;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_THREADS;
+		else
+			dbflags -= DB_THREADS;
 	}
 	else if (strcmp(args[1], "6") == 0){
-		dbflags += DB_VM;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_VM;
+		else
+			dbflags -= DB_VM;
 	}
 	else if (strcmp(args[1], "7") == 0){
-		dbflags += DB_EXEC;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_EXEC;
+		else
+			dbflags -= DB_EXEC;
 	}
 	else if (strcmp(args[1], "8") == 0){
-		dbflags += DB_VFS;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_VFS;
+		else
+			dbflags -= DB_VFS;
 	}
 	else if (strcmp(args[1], "9") == 0){
-		dbflags += DB_SFS;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_SFS;
+		else
+			dbflags -= DB_SFS;
 	}
 	else if (strcmp(args[1], "10") == 0){
-		dbflags += DB_NET;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_NET;
+		else
+			dbflags -= DB_NET;
 	}
 	else if (strcmp(args[1], "11") == 0){
-		dbflags += DB_NETFS;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_NETFS;
+		else
+			dbflags -= DB_NETFS;
 	}
 	else if (strcmp(args[1], "12") == 0){
-		dbflags += DB_KMALLOC;
+		if (strcmp(args[2], "on") == 0)
+			dbflags += DB_KMALLOC;
+		else
+			dbflags -= DB_KMALLOC;
 	}
 	else{
 		kprintf("Flag number not in range (1-12). Usage: df nr on/off\n");
