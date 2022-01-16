@@ -347,7 +347,6 @@ int thread_join(struct thread * thread)
 {
         // Replace this
         clocksleep(5);
-        
         (void)thread;  // suppress warning until code gets written
         return 0;
 }

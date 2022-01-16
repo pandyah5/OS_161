@@ -110,10 +110,9 @@ common_prog(int nargs, char **args)
 		kprintf("thread_fork failed: %s\n", strerror(result));
 		return result;
 	}
-
+	
 	return thread_join(thread);
 }
-
 /*
  * Command for running an arbitrary userlevel program.
  */

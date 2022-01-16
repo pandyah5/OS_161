@@ -150,6 +150,14 @@ sys_reboot(int code)
 	panic("reboot operation failed\n");
 	return 0;
 }
+/*
+ * This is the system exit call which just prints a statement out nothing else.
+ */
+
+int sys__exit(int code){
+	kprintf("The program wants to exit. The code was:%d\n", code);
+	return 0;
+}
 
 /*
  * Kernel main. Boot up, then fork the menu thread; wait for a reboot
