@@ -159,6 +159,37 @@ int sys__exit(int code){
 	return 0;
 }
 
+int sys_write(int filehandle, const void *buf, size_t size){
+	/*
+	The values 0, 1, 2 for filehandle can also be given, for standard input, standard output 
+	& standard error, respectively. 
+	*/
+
+	kprintf("%s \n", *(char **)buf);
+	if (filehandle == 1){
+		char kernel_dest[2] = "z";
+
+		if (copyin(buf, kernel_dest, size) == EFAULT){
+			kprintf("I think we are gonna have a problem here!\n");
+		}
+		kprintf("%s \n", *(char**)kernel_dest);
+	}
+
+	return 0;
+}
+
+int sys_read(int fd, void *buf, size_t buflen){
+	if (fd == 1){
+		if (buf != NULL){
+			if (buflen != 3){
+				buflen = buflen;
+			}
+		}
+	}
+	kprintf("Not implemented! \n");
+	return 0;
+}
+
 /*
  * Kernel main. Boot up, then fork the menu thread; wait for a reboot
  * request, and then shut down.
