@@ -181,77 +181,114 @@ cmd_dbf_set(int nargs, char **args)
 	if (strcmp(args[1], "1") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_LOCORE;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_LOCORE;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else if (strcmp(args[1], "2") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_SYSCALL;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_SYSCALL;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
+
 	}
 	else if (strcmp(args[1], "3") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_INTERRUPT;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_INTERRUPT;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else if (strcmp(args[1], "4") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_DEVICE;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_DEVICE;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else if (strcmp(args[1], "5") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_THREADS;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_THREADS;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else if (strcmp(args[1], "6") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_VM;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_VM;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else if (strcmp(args[1], "7") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_EXEC;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_EXEC;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else if (strcmp(args[1], "8") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_VFS;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_VFS;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else if (strcmp(args[1], "9") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_SFS;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_SFS;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else if (strcmp(args[1], "10") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_NET;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_NET;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else if (strcmp(args[1], "11") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_NETFS;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_NETFS;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else if (strcmp(args[1], "12") == 0){
 		if (strcmp(args[2], "on") == 0)
 			dbflags += DB_KMALLOC;
-		else
+		else if (strcmp(args[2], "off") == 0)
 			dbflags -= DB_KMALLOC;
+		else{
+			kprintf("Usage: df nr on/off\n");
+		}
 	}
 	else{
-		kprintf("Flag number not in range (1-12). Usage: df nr on/off\n");
+		kprintf("Usage: df nr on/off\n");
 		return EINVAL;
 	}
 	
@@ -517,7 +554,7 @@ cmd_dbflags(int n, char **a)
 
 	showmenu("OS/161 Debug flags", dbfmenu);
 
-	kprintf("Current value of dbflags is 0x%03x \n", dbflags);
+	kprintf("Current value of dbflags is 0x%x \n", dbflags);
 	return 0;
 }
 
