@@ -155,7 +155,7 @@ sys_reboot(int code)
  */
 
 int sys__exit(int code){
-	kprintf("The program wants to exit. The code was:%d\n", code);
+	kprintf("The program wants to exit. The code was: %d\n", code);
 	return 0;
 }
 
@@ -165,14 +165,18 @@ int sys_write(int filehandle, const void *buf, size_t size){
 	& standard error, respectively. 
 	*/
 
-	kprintf("%s \n", *(char **)buf);
+	// kprintf("File descriptor: %d\n", filehandle);
+	//kprintf("Buffer: %s\n", *(char**)buf);
+	// kprintf("Size: %d\n", size);
+
 	if (filehandle == 1){
-		char kernel_dest[2] = "z";
+		char kernel_dest[5];
 
 		if (copyin(buf, kernel_dest, size) == EFAULT){
 			kprintf("I think we are gonna have a problem here!\n");
+			return EFAULT;
 		}
-		kprintf("%s \n", *(char**)kernel_dest);
+		kprintf("%c", *kernel_dest);
 	}
 
 	return 0;
