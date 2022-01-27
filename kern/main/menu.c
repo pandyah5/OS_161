@@ -18,9 +18,23 @@
 #include "opt-sfs.h"
 #include "opt-net.h"
 
+int32_t df1 = 0;
+int32_t df2 = 0;
+int32_t df3 = 0;
+int32_t df4 = 0;
+int32_t df5 = 0;
+int32_t df6 = 0;
+int32_t df7 = 0;
+int32_t df8 = 0;
+int32_t df9 = 0;
+int32_t df10 = 0;
+int32_t df11 = 0;
+int32_t df12 = 0;
+
 #define _PATH_SHELL "/bin/sh"
 
 #define MAXMENUARGS  16
+
 
 void
 getinterval(time_t s1, u_int32_t ns1, time_t s2, u_int32_t ns2,
@@ -179,110 +193,158 @@ cmd_dbf_set(int nargs, char **args)
 	}
 	
 	if (strcmp(args[1], "1") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df1){
 			dbflags += DB_LOCORE;
-		else if (strcmp(args[2], "off") == 0)
+			df1 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df1){
 			dbflags -= DB_LOCORE;
+			df1 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 	}
 	else if (strcmp(args[1], "2") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df2){
 			dbflags += DB_SYSCALL;
-		else if (strcmp(args[2], "off") == 0)
+			df2 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df2){
 			dbflags -= DB_SYSCALL;
+			df2 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 
 	}
 	else if (strcmp(args[1], "3") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df3){
 			dbflags += DB_INTERRUPT;
-		else if (strcmp(args[2], "off") == 0)
+			df3 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df3){
 			dbflags -= DB_INTERRUPT;
+			df3 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 	}
 	else if (strcmp(args[1], "4") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df4){
 			dbflags += DB_DEVICE;
-		else if (strcmp(args[2], "off") == 0)
+			df4 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df4){
 			dbflags -= DB_DEVICE;
+			df4 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 	}
 	else if (strcmp(args[1], "5") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df5){
 			dbflags += DB_THREADS;
-		else if (strcmp(args[2], "off") == 0)
+			df5 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df5){
 			dbflags -= DB_THREADS;
+			df5 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 	}
 	else if (strcmp(args[1], "6") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df6){
 			dbflags += DB_VM;
-		else if (strcmp(args[2], "off") == 0)
+			df6 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df6){
 			dbflags -= DB_VM;
+			df6 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 	}
 	else if (strcmp(args[1], "7") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df7){
 			dbflags += DB_EXEC;
-		else if (strcmp(args[2], "off") == 0)
+			df7 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df7){
 			dbflags -= DB_EXEC;
+			df7 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 	}
 	else if (strcmp(args[1], "8") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df8){
 			dbflags += DB_VFS;
-		else if (strcmp(args[2], "off") == 0)
+			df8 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df8){
 			dbflags -= DB_VFS;
+			df8 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 	}
 	else if (strcmp(args[1], "9") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df9){
 			dbflags += DB_SFS;
-		else if (strcmp(args[2], "off") == 0)
+			df9 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df9){
 			dbflags -= DB_SFS;
+			df9 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 	}
 	else if (strcmp(args[1], "10") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df10){
 			dbflags += DB_NET;
-		else if (strcmp(args[2], "off") == 0)
+			df10 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df10){
 			dbflags -= DB_NET;
+			df10 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 	}
 	else if (strcmp(args[1], "11") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df11){
 			dbflags += DB_NETFS;
-		else if (strcmp(args[2], "off") == 0)
+			df11 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df11){
 			dbflags -= DB_NETFS;
+			df11 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
 	}
 	else if (strcmp(args[1], "12") == 0){
-		if (strcmp(args[2], "on") == 0)
+		if (strcmp(args[2], "on") == 0 && !df12){
 			dbflags += DB_KMALLOC;
-		else if (strcmp(args[2], "off") == 0)
+			df12 = 1;
+		}
+		else if (strcmp(args[2], "off") == 0 && df12){
 			dbflags -= DB_KMALLOC;
+			df12 = 0;
+		}
 		else{
 			kprintf("Usage: df nr on/off\n");
 		}
