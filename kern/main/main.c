@@ -16,6 +16,7 @@
 #include <vm.h>
 #include <syscall.h>
 #include <version.h>
+#include <clock.h>
 
 /*
  * These two pieces of data are maintained by the makefiles and build system.
@@ -159,38 +160,116 @@ int sys__exit(int code){
 	return 0;
 }
 
-int sys_write(int filehandle, const void *buf, size_t size){
+int sys_write(int filehandle, const void *buf, size_t size, int32_t* retval){
 	/*
 	The values 0, 1, 2 for filehandle can also be given, for standard input, standard output 
 	& standard error, respectively. 
 	*/
-
-	// kprintf("File descriptor: %d\n", filehandle);
-	//kprintf("Buffer: %s\n", *(char**)buf);
-	// kprintf("Size: %d\n", size);
-
-	if (filehandle == 1){
-		char kernel_dest[5];
+	if (filehandle == 1 || filehandle == 2){
+		char* kernel_dest = kmalloc(size + 1);
+		kernel_dest[size] = '\0';
 
 		if (copyin(buf, kernel_dest, size) == EFAULT){
-			kprintf("I think we are gonna have a problem here!\n");
 			return EFAULT;
 		}
-		kprintf("%c", *kernel_dest);
+		kprintf("%s", kernel_dest);
+		kfree(kernel_dest);
+		*retval = size;
+		return 0;
+	}
+	else{
+		return EBADF;
 	}
 
-	return 0;
+	//return 0;
 }
 
-int sys_read(int fd, void *buf, size_t buflen){
-	if (fd == 1){
-		if (buf != NULL){
-			if (buflen != 3){
-				buflen = buflen;
-			}
-		}
+// int sys_read(int fd, void *buf, size_t buflen, int32_t* retval){
+// 	if(fd || buf || buflen){
+// 		return 0;
+// 	}
+// 	if (retval != NULL){
+// 		return 0;
+// 	}
+// 	return 0;
+// }
+
+int sys_read(int fd, void *buf, size_t buflen, int32_t* retval){
+	if(buflen != 1){
+		*retval = -1;
+		return -1;
 	}
-	kprintf("Not implemented! \n");
+	if (fd == 1 || fd == 2){
+		*retval = -1;
+		return EBADF;
+	}
+	else if (fd == 0){
+		char* kernel_dest = kmalloc(buflen);
+		*kernel_dest = getch();
+
+		if (copyout(kernel_dest, buf, buflen) == EFAULT){
+			return EFAULT;
+		}
+
+		kfree(kernel_dest);
+		*retval = buflen;
+		return 0;
+	}
+	else{
+		*retval = -1;
+		return EBADF;
+	}
+}
+
+time_t sys___time(time_t* seconds, unsigned long* nanoseconds, int32_t* retval){
+	if (seconds != NULL && nanoseconds != NULL){
+		time_t kern_seconds;
+		u_int32_t kern_nanoseconds;
+		gettime(&kern_seconds, &kern_nanoseconds);
+		if(copyout(&kern_seconds, (userptr_t) seconds, sizeof(kern_seconds)) == EFAULT){
+			kprintf("Encountered error in copyout\n");
+			return -1;
+		}
+		if(copyout(&kern_nanoseconds, (userptr_t) nanoseconds, sizeof(kern_nanoseconds)) == EFAULT){
+			kprintf("Encountered error in copyout\n");
+			return -1;
+		}
+		*retval = kern_seconds;
+		return 0;
+	}
+	else if(seconds != NULL){
+		time_t kern_seconds;
+		u_int32_t kern_nanoseconds;
+		gettime(&kern_seconds, &kern_nanoseconds);
+		if(copyout(&kern_seconds, (userptr_t) seconds, sizeof(kern_seconds)) == EFAULT){
+			kprintf("Encountered error in copyout\n");
+			return -1;
+		}
+		*retval = kern_seconds;
+		return 0;
+	}
+	else if(nanoseconds != NULL){
+		time_t kern_seconds;
+		u_int32_t kern_nanoseconds;
+		gettime(&kern_seconds, &kern_nanoseconds);
+		if(copyout(&kern_nanoseconds, (userptr_t) nanoseconds, sizeof(kern_nanoseconds)) == EFAULT){
+			kprintf("Encountered error in copyout\n");
+			return -1;
+		}
+		*retval = kern_seconds;
+		return 0;
+	}
+	else{
+		time_t kern_seconds;
+		u_int32_t kern_nanoseconds;
+		gettime(&kern_seconds, &kern_nanoseconds);
+		*retval = kern_seconds;
+		return 0;
+	}
+}
+
+unsigned int sys_sleep(unsigned int seconds){
+	clocksleep((int)seconds);
 	return 0;
 }
 

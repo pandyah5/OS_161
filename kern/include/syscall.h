@@ -11,9 +11,15 @@ int sys_reboot(int code);
 int sys__exit(int code);
 
 // Adding the write() system call code
-int sys_write(int filehandle, const void *buf, size_t size);
+int sys_write(int filehandle, const void *buf, size_t size, int32_t* retval);
 
 // Adding the read() system call code
-int sys_read(int fd, void *buf, size_t buflen);
+int sys_read(int fd, void *buf, size_t buflen, int32_t* retval);
+
+// Adding the __time() system call code
+time_t sys___time(time_t *seconds, unsigned long *nanoseconds, int32_t* retval);
+
+// Adding the sleep() code
+unsigned int sys_sleep(unsigned int seconds);
 
 #endif /* _SYSCALL_H_ */

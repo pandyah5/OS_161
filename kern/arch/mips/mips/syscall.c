@@ -77,11 +77,19 @@ mips_syscall(struct trapframe *tf)
 		break;
 
 		case SYS_write:
-		err = sys_write(tf->tf_a0, (const void *)tf->tf_a1, sizeof(tf->tf_a1));
+		err = sys_write(tf->tf_a0, (const void *)tf->tf_a1, (size_t)tf->tf_a2, &retval);
 		break;
 
 		case SYS_read:
-		err = sys_read(tf->tf_a0, &tf->tf_a1, tf->tf_a2);
+		err = sys_read(tf->tf_a0, (void *)tf->tf_a1, (size_t) tf->tf_a2, &retval);
+		break;
+
+		case SYS___time:
+		err = sys___time((time_t *)tf->tf_a0, (unsigned long *)tf->tf_a1, &retval);
+		break;
+
+		case SYS_sleep:
+		err = sys_sleep((unsigned int)tf->tf_a0);
 		break;
 
 	    /* Add stuff here */

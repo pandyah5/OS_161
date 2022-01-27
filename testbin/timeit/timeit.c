@@ -60,7 +60,6 @@ void
 timeit_before(struct timespec * before, struct timespec * after)
 {
         time_t ret = __time(&before->tv_sec, &before->tv_nsec);
-        
         if (ret != before->tv_sec) {
                 printf("timeit: failed. inconsistent seconds returned\n");
                 exit(-1);

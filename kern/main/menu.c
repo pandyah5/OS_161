@@ -9,7 +9,7 @@
 #include <lib.h>
 #include <clock.h>
 #include <thread.h>
-#include <syscall.h>
+#include <syscall.h> 
 #include <uio.h>
 #include <vfs.h>
 #include <sfs.h>

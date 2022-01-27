@@ -76,6 +76,7 @@ static void printstring(const char * str)
 {
         size_t len = strlen(str);
         int actual = write(STDOUT_FILENO, str, len);
+        printf("Int arg1: %d\n", STDOUT_FILENO);
         if ( actual < 0 )
                 err(1, "write");
         if ( actual != (int)len )
