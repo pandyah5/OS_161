@@ -184,26 +184,20 @@ int sys_write(int filehandle, const void *buf, size_t size, int32_t* retval){
 	//return 0;
 }
 
-// int sys_read(int fd, void *buf, size_t buflen, int32_t* retval){
-// 	if(fd || buf || buflen){
-// 		return 0;
-// 	}
-// 	if (retval != NULL){
-// 		return 0;
-// 	}
-// 	return 0;
-// }
-
 int sys_read(int fd, void *buf, size_t buflen, int32_t* retval){
-	if(buflen != 1){
+	if (buf == NULL){
 		*retval = -1;
-		return -1;
+		return EFAULT;
 	}
-	if (fd == 1 || fd == 2){
+	if (fd != 0){
 		*retval = -1;
 		return EBADF;
 	}
-	else if (fd == 0){
+	else {
+		if(buflen != 1){
+			*retval = -1;
+			return -1;
+		}
 		char* kernel_dest = kmalloc(buflen);
 		*kernel_dest = getch();
 
@@ -215,10 +209,6 @@ int sys_read(int fd, void *buf, size_t buflen, int32_t* retval){
 		*retval = buflen;
 		return 0;
 	}
-	else{
-		*retval = -1;
-		return EBADF;
-	}
 }
 
 time_t sys___time(time_t* seconds, unsigned long* nanoseconds, int32_t* retval){
@@ -227,12 +217,10 @@ time_t sys___time(time_t* seconds, unsigned long* nanoseconds, int32_t* retval){
 		u_int32_t kern_nanoseconds;
 		gettime(&kern_seconds, &kern_nanoseconds);
 		if(copyout(&kern_seconds, (userptr_t) seconds, sizeof(kern_seconds)) == EFAULT){
-			kprintf("Encountered error in copyout\n");
-			return -1;
+			return EFAULT;
 		}
 		if(copyout(&kern_nanoseconds, (userptr_t) nanoseconds, sizeof(kern_nanoseconds)) == EFAULT){
-			kprintf("Encountered error in copyout\n");
-			return -1;
+			return EFAULT;
 		}
 		*retval = kern_seconds;
 		return 0;
@@ -242,8 +230,7 @@ time_t sys___time(time_t* seconds, unsigned long* nanoseconds, int32_t* retval){
 		u_int32_t kern_nanoseconds;
 		gettime(&kern_seconds, &kern_nanoseconds);
 		if(copyout(&kern_seconds, (userptr_t) seconds, sizeof(kern_seconds)) == EFAULT){
-			kprintf("Encountered error in copyout\n");
-			return -1;
+			return EFAULT;
 		}
 		*retval = kern_seconds;
 		return 0;
@@ -253,8 +240,7 @@ time_t sys___time(time_t* seconds, unsigned long* nanoseconds, int32_t* retval){
 		u_int32_t kern_nanoseconds;
 		gettime(&kern_seconds, &kern_nanoseconds);
 		if(copyout(&kern_nanoseconds, (userptr_t) nanoseconds, sizeof(kern_nanoseconds)) == EFAULT){
-			kprintf("Encountered error in copyout\n");
-			return -1;
+			return EFAULT;
 		}
 		*retval = kern_seconds;
 		return 0;
