@@ -50,6 +50,7 @@ void              sem_destroy(struct semaphore *);
 
 struct lock {
 	char *name;
+	volatile int flag;
 	// add what you need here
 	// (don't forget to mark things volatile as needed)
 };
@@ -59,6 +60,7 @@ void         lock_acquire(struct lock *);
 void         lock_release(struct lock *);
 int          lock_do_i_hold(struct lock *);
 void         lock_destroy(struct lock *);
+int          test_and_set(int* old_ptr, int new_val);
 
 
 /*

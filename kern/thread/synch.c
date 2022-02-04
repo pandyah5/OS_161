@@ -98,6 +98,12 @@ V(struct semaphore *sem)
 //
 // Lock.
 
+int test_and_set(int* old_ptr, int new_val){
+	int old_val = *old_ptr;
+	*old_ptr = new_val
+	return old_val
+}
+
 struct lock *
 lock_create(const char *name)
 {
