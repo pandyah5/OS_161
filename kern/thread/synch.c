@@ -9,6 +9,7 @@
 #include <thread.h>
 #include <curthread.h>
 #include <machine/spl.h>
+#include <queue.h>
 
 ////////////////////////////////////////////////////////////
 //
@@ -98,15 +99,28 @@ V(struct semaphore *sem)
 //
 // Lock.
 
-int test_and_set(int* old_ptr, int new_val){
+// Atomic instruction used for locking
+int test_and_set(volatile int* old_ptr, int new_val, char* owner){
+	int spl;
+	spl = splhigh();
+
 	int old_val = *old_ptr;
-	*old_ptr = new_val
-	return old_val
+	*old_ptr = new_val;
+
+	// Set the name to identify which thread owns it
+	if (old_val == 0){
+		owner = kstrdup(curthread->t_name);
+	}
+
+	splx(spl);
+
+	return old_val;
 }
 
 struct lock *
 lock_create(const char *name)
 {
+	// Allocate memory
 	struct lock *lock;
 
 	lock = kmalloc(sizeof(struct lock));
@@ -119,8 +133,9 @@ lock_create(const char *name)
 		kfree(lock);
 		return NULL;
 	}
-	
-	// add stuff here as needed
+
+	// No one holds the lock initially
+	lock->flag = 0;
 	
 	return lock;
 }
@@ -128,10 +143,16 @@ lock_create(const char *name)
 void
 lock_destroy(struct lock *lock)
 {
+	// Check if lock exists
 	assert(lock != NULL);
 
-	// add stuff here as needed
-	
+	// Check if someone is holding the lock
+	int spl;
+	spl = splhigh();
+	assert(lock->flag == 0)
+	splx(spl);
+
+	// Free the lock
 	kfree(lock->name);
 	kfree(lock);
 }
@@ -139,27 +160,44 @@ lock_destroy(struct lock *lock)
 void
 lock_acquire(struct lock *lock)
 {
-	// Write this
+	// Check if lock is NULL
+	assert(lock!=NULL);
 
-	(void)lock;  // suppress warning until code gets written
+	// Check if we are in an interrupt handler
+	assert(in_interrupt==0);
+
+	// Check if lock is held, if yes then spin, if no then book it
+	while (test_and_set(&(lock->flag), 1, lock->name) == 1){
+		;
+	}
+
+	// Return back
 }
 
 void
 lock_release(struct lock *lock)
 {
 	// Write this
-
-	(void)lock;  // suppress warning until code gets written
+	if (lock_do_i_hold(lock) == 1){
+		lock->flag = 0;
+	}
 }
 
 int
 lock_do_i_hold(struct lock *lock)
 {
-	// Write this
+	// Block interrupts
+	int spl;
+	spl = splhigh();
 
-	(void)lock;  // suppress warning until code gets written
-
-	return 1;    // dummy until code gets written
+	if(strcmp(lock->name, curthread->t_name) == 0 && lock->flag == 1){
+		splx(spl);
+		return 1;
+	}
+	else{
+		splx(spl);
+		return 0;
+	}
 }
 
 ////////////////////////////////////////////////////////////
@@ -170,6 +208,7 @@ lock_do_i_hold(struct lock *lock)
 struct cv *
 cv_create(const char *name)
 {
+	// Allocate memory
 	struct cv *cv;
 
 	cv = kmalloc(sizeof(struct cv));
@@ -182,8 +221,17 @@ cv_create(const char *name)
 		kfree(cv);
 		return NULL;
 	}
-	
-	// add stuff here as needed
+
+	// Create a waiting queue for sleeping threads
+	cv->waiting_line = q_create(10);
+
+	if(cv->waiting_line == NULL){
+		kfree(cv);
+		return NULL;
+	}
+
+	// Intially no thread sleeps on cv
+	cv->num_of_threads = 0;
 	
 	return cv;
 }
@@ -193,32 +241,114 @@ cv_destroy(struct cv *cv)
 {
 	assert(cv != NULL);
 
-	// add stuff here as needed
+	// Block interrupts, check is cv is empty
+	int spl;
+	spl = splhigh();
+	assert(cv->num_of_threads == 0);
+	splx(spl);
 	
 	kfree(cv->name);
+	q_destroy(cv->waiting_line);
+	kfree(cv->waiting_line);
 	kfree(cv);
 }
 
 void
 cv_wait(struct cv *cv, struct lock *lock)
-{
-	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+{	
+	// Check if you hold the lock
+	if(lock_do_i_hold(lock) == 1){
+		// Wrap in a no interrupt segment
+		int spl;
+		spl = splhigh();
+
+		// Check if there is enough space in queue, if not make some
+		q_preallocate(cv->waiting_line, cv->num_of_threads + 1);
+
+		// Add the current thread to the queue
+		q_addtail(cv->waiting_line, curthread);
+
+		// Add one to the number of threads put to sleep
+		cv->num_of_threads += 1;
+
+		// Release the lock
+		lock_release(lock);
+
+		// Send the thread to sleep
+		thread_sleep(curthread);
+
+		// Acquire the lock again
+		lock_acquire(lock);
+
+		splx(spl);
+	}
 }
 
 void
 cv_signal(struct cv *cv, struct lock *lock)
 {
-	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	// We are already hold a lock so we are atomic
+
+	struct thread* wake_up;
+
+	if(lock_do_i_hold(lock) == 1){
+
+		// Wrap in a no interrupt segment
+		int spl;
+		spl = splhigh();
+
+		// Get the head of the queue
+		int head_index = q_getstart(cv->waiting_line);
+
+		// Check if head is valid
+		if (head_index > cv->num_of_threads){
+			kprintf("ERROR: Accesing elements beyond the valid elements in queue.\n");
+		}
+
+		// Get the thread pointed to by the head
+		wake_up = q_getguy(cv->waiting_line, head_index);
+
+		// Remove the head from the queue
+		q_remhead(cv->waiting_line);
+
+		// Decrement number of threads on sleep
+		cv->num_of_threads -= 1;
+
+		// Wake up the thread
+		thread_wakeup(wake_up);
+
+		splx(spl);
+	}
 }
 
 void
 cv_broadcast(struct cv *cv, struct lock *lock)
 {
-	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	if(lock_do_i_hold(lock) == 1){
+		// Wrap in a no interrupt segment
+		int spl;
+		spl = splhigh();
+
+		int i;
+		struct thread * ptr;
+		
+		while(cv->num_of_threads != 0) {
+			i = q_getstart(cv->waiting_line);
+			ptr = q_getguy(cv->waiting_line, i);
+
+			// Remove the head from the queue
+			q_remhead(cv->waiting_line);
+
+			// Decrement number of threads on sleep
+			cv->num_of_threads -= 1;
+
+			// Wake up the thread
+			thread_wakeup(ptr);
+		}
+
+		// Reset number of threads on sleep
+		assert(cv->num_of_threads == 0);
+
+		splx(spl);
+	}
 }

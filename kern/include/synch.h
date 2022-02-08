@@ -49,8 +49,9 @@ void              sem_destroy(struct semaphore *);
  */
 
 struct lock {
-	char *name;
-	volatile int flag;
+	char* name;
+	volatile int flag; // 0: Available and 1: Lock is held
+	
 	// add what you need here
 	// (don't forget to mark things volatile as needed)
 };
@@ -60,7 +61,7 @@ void         lock_acquire(struct lock *);
 void         lock_release(struct lock *);
 int          lock_do_i_hold(struct lock *);
 void         lock_destroy(struct lock *);
-int          test_and_set(int* old_ptr, int new_val);
+int          test_and_set(volatile int* old_ptr, int new_val, char* name);
 
 
 /*
@@ -91,6 +92,9 @@ int          test_and_set(int* old_ptr, int new_val);
 
 struct cv {
 	char *name;
+	struct queue* waiting_line;
+	volatile int num_of_threads;
+
 	// add what you need here
 	// (don't forget to mark things volatile as needed)
 };
