@@ -61,7 +61,7 @@ void         lock_acquire(struct lock *);
 void         lock_release(struct lock *);
 int          lock_do_i_hold(struct lock *);
 void         lock_destroy(struct lock *);
-int          test_and_set(volatile int* old_ptr, int new_val, char* name);
+int          test_and_set(volatile int* old_ptr, int new_val);
 
 
 /*
