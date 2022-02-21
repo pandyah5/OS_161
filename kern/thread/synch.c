@@ -99,17 +99,17 @@ V(struct semaphore *sem)
 // Lock.
 
 // Atomic instruction used for locking
-int test_and_set(volatile int* old_ptr, int new_val){
-	int spl;
-	spl = splhigh();
+// int test_and_set(volatile int* old_ptr, int new_val){
+// 	int spl;
+// 	spl = splhigh();
 
-	int old_val = *old_ptr;
-	*old_ptr = new_val;
+// 	int old_val = *old_ptr;
+// 	*old_ptr = new_val;
 	
-	splx(spl);
+// 	splx(spl);
 	
-	return old_val;
-}
+// 	return old_val;
+// }
 
 struct lock *
 lock_create(const char *name)
@@ -126,9 +126,15 @@ lock_create(const char *name)
 		kfree(lock);
 		return NULL;
 	}
+
+	lock->owner = kmalloc(1000);
+	if (lock->owner == NULL){
+		return NULL;
+	}
 	
 	// No one holds the lock initially
 	lock->flag = 0;
+	lock->owner = kstrdup("no_owner");
 	
 	return lock;
 }
@@ -146,6 +152,7 @@ lock_destroy(struct lock *lock)
 	splx(spl);
 
 	// Free the lock
+	kfree(lock->owner);
 	kfree(lock->name);
 	kfree(lock);
 }
@@ -163,8 +170,11 @@ lock_acquire(struct lock *lock)
 	spl = splhigh();
 
 	while (lock->flag == 1){
-		;
+		splx(spl);
+		thread_yield();
+		spl = splhigh();
 	}
+	lock->owner = kstrdup(curthread->t_name);
 	lock->flag = 1;
 	//kprintf("\nI captured the lock %s\n", lock->name);
 
@@ -182,6 +192,7 @@ lock_release(struct lock *lock)
 
 	//kprintf("I released the lock %s\n", lock->name);
 	lock->flag = 0;
+	lock->owner = kstrdup("no_owner");
 
 	splx(spl);
 }
@@ -189,11 +200,16 @@ lock_release(struct lock *lock)
 int
 lock_do_i_hold(struct lock *lock)
 {
-	// Write this
-
-	(void)lock;  // suppress warning until code gets written
-
-	return 1;    // dummy until code gets written
+	int spl;
+	spl = splhigh();
+	if(strcmp(lock->owner, curthread->t_name) == 0){
+		splx(spl);
+		return 1;
+	}
+	else{
+		splx(spl);
+		return 0;
+	}
 }
 
 ////////////////////////////////////////////////////////////

@@ -51,6 +51,8 @@ void              sem_destroy(struct semaphore *);
 struct lock {
 	char* name;
 	volatile int flag; // 0: Available and 1: Lock is held
+
+	char* owner;
 	
 	// add what you need here
 	// (don't forget to mark things volatile as needed)
