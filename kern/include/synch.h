@@ -53,6 +53,7 @@ struct lock {
 	volatile int flag; // 0: Available and 1: Lock is held
 
 	char* owner;
+	volatile u_int32_t thread_id;
 	
 	// add what you need here
 	// (don't forget to mark things volatile as needed)

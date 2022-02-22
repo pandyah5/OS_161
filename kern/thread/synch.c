@@ -9,6 +9,7 @@
 #include <thread.h>
 #include <curthread.h>
 #include <machine/spl.h>
+#include <queue.h>
 
 ////////////////////////////////////////////////////////////
 //
@@ -174,6 +175,9 @@ lock_acquire(struct lock *lock)
 		thread_yield();
 		spl = splhigh();
 	}
+
+	kprintf("Lock acquired\n");
+	
 	lock->owner = kstrdup(curthread->t_name);
 	lock->flag = 1;
 	//kprintf("\nI captured the lock %s\n", lock->name);
@@ -193,6 +197,8 @@ lock_release(struct lock *lock)
 	//kprintf("I released the lock %s\n", lock->name);
 	lock->flag = 0;
 	lock->owner = kstrdup("no_owner");
+
+	kprintf("Lock_release\n");
 
 	splx(spl);
 }
@@ -220,7 +226,7 @@ lock_do_i_hold(struct lock *lock)
 struct cv *
 cv_create(const char *name)
 {
-	struct cv *cv;
+	struct cv* cv;
 
 	cv = kmalloc(sizeof(struct cv));
 	if (cv == NULL) {
@@ -232,8 +238,10 @@ cv_create(const char *name)
 		kfree(cv);
 		return NULL;
 	}
-	
-	// add stuff here as needed
+
+	// No one is resting initially
+	cv->num_of_threads = 0;
+	cv->waiting_line = q_create(1); // Initial size is 10 threads
 	
 	return cv;
 }
@@ -241,10 +249,15 @@ cv_create(const char *name)
 void
 cv_destroy(struct cv *cv)
 {
+	int spl;
 	assert(cv != NULL);
 
+	spl = splhigh();
+	assert(cv->num_of_threads==0);
+	splx(spl);
+
 	// add stuff here as needed
-	
+	q_destroy(cv->waiting_line);
 	kfree(cv->name);
 	kfree(cv);
 }
@@ -252,23 +265,69 @@ cv_destroy(struct cv *cv)
 void
 cv_wait(struct cv *cv, struct lock *lock)
 {
-	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	// If the thread does not hold the lock return
+	int spl;
+	spl = splhigh();
+
+	if (!lock_do_i_hold(lock)){
+		splx(spl);
+		return;
+	}
+
+	if(q_addtail(cv->waiting_line, curthread->t_name) != 0){
+		assert("Problem in adding element to wait queue in cv.");
+	}
+	cv->num_of_threads += 1;
+
+	lock_release(lock);
+	thread_sleep(curthread->t_name);
+	lock_acquire(lock);
+
+	splx(spl);
+	return;
 }
 
 void
 cv_signal(struct cv *cv, struct lock *lock)
 {
-	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	int spl;
+	spl = splhigh();
+	if (!lock_do_i_hold(lock)){
+		splx(spl);
+		return;
+	}
+	void* to_wakeup = q_remhead(cv->waiting_line);
+	cv->num_of_threads--;
+
+	thread_wakeup(to_wakeup);
+	splx(spl);
+	return;
 }
 
 void
 cv_broadcast(struct cv *cv, struct lock *lock)
 {
-	// Write this
-	(void)cv;    // suppress warning until code gets written
-	(void)lock;  // suppress warning until code gets written
+	int spl;
+	spl = splhigh();
+	if (!lock_do_i_hold(lock)){
+		splx(spl);
+		return;
+	}
+	
+	int i; 
+	for (i = q_getstart(cv->waiting_line); i != q_getend(cv->waiting_line); i = (i+1)%q_getsize(cv->waiting_line)) {
+		void *ptr = q_getguy(cv->waiting_line, i);
+		kprintf("i: %d\n", i);
+		thread_wakeup(ptr);
+	}
+
+	int j = cv->num_of_threads;
+	while (j > 1){
+		kprintf("Size: %d \n", j);
+		q_remhead(cv->waiting_line);
+		j--;
+	}
+
+	kprintf("Here_too\n");
+	splx(spl);
 }
