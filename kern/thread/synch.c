@@ -172,7 +172,7 @@ lock_acquire(struct lock *lock)
 	}
 	
 	lock->flag = 1;
-	lock->owner = curthread;
+	lock->owner = curthread->t_name;
 	//kprintf("\nI captured the lock %s\n", lock->name);
 
 	splx(spl);
@@ -200,7 +200,7 @@ lock_do_i_hold(struct lock *lock)
 {
 	int spl;
 	spl = splhigh();
-	if(lock->owner == curthread){
+	if(lock->owner == curthread->t_name){
 		splx(spl);
 		return 1;
 	}
@@ -248,12 +248,12 @@ cv_create(const char *name)
 void
 cv_destroy(struct cv *cv)
 {
-	// int spl;
+	int spl;
 	assert(cv != NULL);
 
-	// spl = splhigh();
-	// assert(cv->num_of_threads==0);
-	// splx(spl);
+	spl = splhigh();
+	assert(cv->num_of_threads==0 || !thread_hassleepers(cv));
+	splx(spl);
 
 	//q_destroy(cv->waiting_line);
 	kfree(cv->name);
@@ -281,11 +281,15 @@ cv_wait(struct cv *cv, struct lock *lock)
 
 	int spl;
 	spl = splhigh();
+
+	// Minor error checking
+	assert(lock != NULL && cv != NULL);
+
 	lock_release(lock);
 	cv->num_of_threads += 1;
 	thread_sleep(cv);
-	splx(spl);
 	lock_acquire(lock);
+	splx(spl);
 
 	return;
 }
@@ -293,7 +297,7 @@ cv_wait(struct cv *cv, struct lock *lock)
 void
 cv_signal(struct cv *cv, struct lock *lock)
 {
-	if(lock == NULL){;}
+	assert(lock != NULL && cv != NULL);
 	// if (!lock_do_i_hold(lock)){
 	// 	//kprintf("Woah!\n");
 	// 	return;
@@ -310,7 +314,7 @@ cv_signal(struct cv *cv, struct lock *lock)
 	int spl;
 	spl = splhigh();
 	cv->num_of_threads -= 1;
-	thread_wakeup(cv);
+	mono_thread_wakeup(cv);
 	splx(spl);
 	return;
 }
@@ -318,7 +322,7 @@ cv_signal(struct cv *cv, struct lock *lock)
 void
 cv_broadcast(struct cv *cv, struct lock *lock)
 {
-	if(lock == NULL){;}
+	assert(lock != NULL && cv != NULL);
 	// if (!lock_do_i_hold(lock)){
 	// 	return;
 	// }
