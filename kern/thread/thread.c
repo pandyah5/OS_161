@@ -529,6 +529,34 @@ thread_sleep(const void *addr)
  * Wake up one or more threads who are sleeping on "sleep address"
  * ADDR.
  */
+
+
+// This is the code to wakeup only one thread at addr
+void mono_thread_wakeup (const void * addr){
+	int i, result;
+	
+	// meant to be called with interrupts off
+	assert(curspl>0);
+	
+	// Variable to keep track of found
+	int found = 0;
+
+	for (i=0; !found && i<array_getnum(sleepers); i++) {
+		struct thread *t = array_getguy(sleepers, i);
+		if (t->t_sleepaddr == addr) {
+			
+			// Remove from list
+			array_remove(sleepers, i);
+			found = 1;
+			// must look at the same sleepers[i] again
+			i--;
+
+			result = make_runnable(t);
+			assert(result==0);
+		}
+	}
+}
+
 void
 thread_wakeup(const void *addr)
 {

@@ -99,6 +99,9 @@ void thread_sleep(const void *addr);
  */
 void thread_wakeup(const void *addr);
 
+// Trying to add this new function to implement CV (DELETE IF DOESNT WORK)
+void mono_thread_wakeup (const void * addr);
+
 /*
  * Return nonzero if there are any threads sleeping on the specified
  * address. Meant only for diagnostic purposes.

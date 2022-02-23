@@ -52,7 +52,7 @@ struct lock {
 	char* name;
 	volatile int flag; // 0: Available and 1: Lock is held
 
-	char* owner;
+	struct thread * owner;
 	volatile u_int32_t thread_id;
 	
 	// add what you need here
@@ -95,9 +95,7 @@ int          test_and_set(volatile int* old_ptr, int new_val);
 
 struct cv {
 	char *name;
-	struct queue* waiting_line;
 	volatile int num_of_threads;
-	struct lock* cv_lock;
 
 	// add what you need here
 	// (don't forget to mark things volatile as needed)
