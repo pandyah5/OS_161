@@ -97,6 +97,7 @@ struct cv {
 	char *name;
 	struct queue* waiting_line;
 	volatile int num_of_threads;
+	struct lock* cv_lock;
 
 	// add what you need here
 	// (don't forget to mark things volatile as needed)

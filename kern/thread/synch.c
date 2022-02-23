@@ -10,6 +10,7 @@
 #include <curthread.h>
 #include <machine/spl.h>
 #include <queue.h>
+#include <array.h>
 
 ////////////////////////////////////////////////////////////
 //
@@ -176,9 +177,9 @@ lock_acquire(struct lock *lock)
 		spl = splhigh();
 	}
 
-	kprintf("Lock acquired\n");
+	// kprintf("Lock acquired\n");
 	
-	lock->owner = kstrdup(curthread->t_name);
+	lock->owner = curthread->t_name;
 	lock->flag = 1;
 	//kprintf("\nI captured the lock %s\n", lock->name);
 
@@ -198,7 +199,7 @@ lock_release(struct lock *lock)
 	lock->flag = 0;
 	lock->owner = kstrdup("no_owner");
 
-	kprintf("Lock_release\n");
+	//kprintf("Lock_release\n");
 
 	splx(spl);
 }
@@ -208,12 +209,14 @@ lock_do_i_hold(struct lock *lock)
 {
 	int spl;
 	spl = splhigh();
-	if(strcmp(lock->owner, curthread->t_name) == 0){
+	if(lock->owner == curthread->t_name){
 		splx(spl);
+		//kprintf("Passed: %s, %s \n", lock->owner, curthread->t_name);
 		return 1;
 	}
 	else{
 		splx(spl);
+		//kprintf("Failed: %s, %s \n", lock->owner, curthread->t_name);
 		return 0;
 	}
 }
@@ -239,9 +242,16 @@ cv_create(const char *name)
 		return NULL;
 	}
 
+	cv->cv_lock = kmalloc(sizeof(struct lock));
+	if (cv->cv_lock == NULL){
+		kfree(cv);
+		return NULL;
+	}
+
 	// No one is resting initially
 	cv->num_of_threads = 0;
-	cv->waiting_line = q_create(1); // Initial size is 10 threads
+	cv->waiting_line = q_create(1); // Initial size is 1 threads
+	cv->cv_lock = lock_create("my_cv");
 	
 	return cv;
 }
@@ -256,8 +266,8 @@ cv_destroy(struct cv *cv)
 	assert(cv->num_of_threads==0);
 	splx(spl);
 
-	// add stuff here as needed
 	q_destroy(cv->waiting_line);
+	lock_destroy(cv->cv_lock);
 	kfree(cv->name);
 	kfree(cv);
 }
@@ -266,39 +276,49 @@ void
 cv_wait(struct cv *cv, struct lock *lock)
 {
 	// If the thread does not hold the lock return
-	int spl;
-	spl = splhigh();
 
 	if (!lock_do_i_hold(lock)){
-		splx(spl);
+		//kprintf("Woah!\n");
 		return;
 	}
 
+	// kprintf("In wait\n");
+
+	lock_acquire(cv->cv_lock);
 	if(q_addtail(cv->waiting_line, curthread->t_name) != 0){
 		assert("Problem in adding element to wait queue in cv.");
 	}
 	cv->num_of_threads += 1;
+	lock_release(cv->cv_lock);
 
+	int spl;
+	spl = splhigh();
 	lock_release(lock);
 	thread_sleep(curthread->t_name);
+	splx(spl);
 	lock_acquire(lock);
 
-	splx(spl);
 	return;
 }
 
 void
 cv_signal(struct cv *cv, struct lock *lock)
 {
-	int spl;
-	spl = splhigh();
 	if (!lock_do_i_hold(lock)){
-		splx(spl);
+		//kprintf("Woah!\n");
 		return;
 	}
-	void* to_wakeup = q_remhead(cv->waiting_line);
-	cv->num_of_threads--;
 
+	lock_acquire(cv->cv_lock);
+	void* to_wakeup;
+	if (cv->num_of_threads > 0){
+		to_wakeup = q_remhead(cv->waiting_line);
+		cv->num_of_threads--;
+	}
+	lock_release(cv->cv_lock);
+
+	int spl;
+	spl = splhigh();
 	thread_wakeup(to_wakeup);
 	splx(spl);
 	return;
@@ -307,27 +327,34 @@ cv_signal(struct cv *cv, struct lock *lock)
 void
 cv_broadcast(struct cv *cv, struct lock *lock)
 {
-	int spl;
-	spl = splhigh();
 	if (!lock_do_i_hold(lock)){
-		splx(spl);
+		kprintf("Woah!\n");
 		return;
 	}
+
+	lock_acquire(cv->cv_lock);
 	
-	int i; 
-	for (i = q_getstart(cv->waiting_line); i != q_getend(cv->waiting_line); i = (i+1)%q_getsize(cv->waiting_line)) {
-		void *ptr = q_getguy(cv->waiting_line, i);
-		kprintf("i: %d\n", i);
-		thread_wakeup(ptr);
+	//kprintf("Threads sleeping in cv: %d\n", cv->num_of_threads);
+	//kprintf("Size of queue: %d\n", q_getsize(cv->waiting_line));
+	int i = cv->num_of_threads;
+	int spl;
+	while (i > 0){
+		void *ptr = q_remhead(cv->waiting_line);
+
+		// kprintf("i: %d, waking up: %p \n", i, ptr);
+		
+		spl = splhigh();
+		if (thread_hassleepers(ptr)){
+			thread_wakeup(ptr);
+		}
+		else{
+			kprintf("I was not sleeping!\n");
+		}
+		splx(spl);
+		i--;
 	}
 
-	int j = cv->num_of_threads;
-	while (j > 1){
-		kprintf("Size: %d \n", j);
-		q_remhead(cv->waiting_line);
-		j--;
-	}
+	cv->num_of_threads = 0;
 
-	kprintf("Here_too\n");
-	splx(spl);
+	lock_release(cv->cv_lock);
 }

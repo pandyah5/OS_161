@@ -570,6 +570,8 @@ thread_hassleepers(const void *addr)
 	
 	// meant to be called with interrupts off
 	assert(curspl>0);
+
+	// kprintf("Currently there are %d threads sleeping.\n", array_getnum(sleepers));
 	
 	for (i=0; i<array_getnum(sleepers); i++) {
 		struct thread *t = array_getguy(sleepers, i);
