@@ -231,16 +231,16 @@ cv_create(const char *name)
 		return NULL;
 	}
 
-	// cv->cv_lock = kmalloc(sizeof(struct lock));
-	// if (cv->cv_lock == NULL){
-	// 	kfree(cv);
-	// 	return NULL;
-	// }
+	cv->cv_lock = kmalloc(sizeof(struct lock));
+	if (cv->cv_lock == NULL){
+		kfree(cv);
+		return NULL;
+	}
 
 	// No one is resting initially
 	cv->num_of_threads = 0;
-	//cv->waiting_line = q_create(1); // Initial size is 1 threads
-	//cv->cv_lock = lock_create("my_cv");
+	cv->waiting_line = q_create(1); // Initial size is 1 threads
+	cv->cv_lock = lock_create("my_cv");
 	
 	return cv;
 }
@@ -252,12 +252,12 @@ cv_destroy(struct cv *cv)
 	assert(cv != NULL);
 
 	spl = splhigh();
-	assert(cv->num_of_threads==0 || !thread_hassleepers(cv));
+	assert(cv->num_of_threads==0);
 	splx(spl);
 
-	//q_destroy(cv->waiting_line);
+	q_destroy(cv->waiting_line);
+	lock_destroy(cv->cv_lock);
 	kfree(cv->name);
-	//lock_destroy(cv->cv_lock);
 	kfree(cv);
 }
 
@@ -266,30 +266,26 @@ cv_wait(struct cv *cv, struct lock *lock)
 {
 	// If the thread does not hold the lock return
 
-	// if (!lock_do_i_hold(lock)){
-	// 	return;
-	// }
+	if (!lock_do_i_hold(lock)){
+		//kprintf("Woah!\n");
+		return;
+	}
 
 	// kprintf("In wait\n");
 
-	// lock_acquire(cv->cv_lock);
-	// if(q_addtail(cv->waiting_line, curthread->t_name) != 0){
-	// 	assert("Problem in adding element to wait queue in cv.");
-	// }
-	// cv->num_of_threads += 1;
-	// lock_release(cv->cv_lock);
+	lock_acquire(cv->cv_lock);
+	if(q_addtail(cv->waiting_line, curthread->t_name) != 0){
+		assert("Problem in adding element to wait queue in cv.");
+	}
+	cv->num_of_threads += 1;
+	lock_release(cv->cv_lock);
 
 	int spl;
 	spl = splhigh();
-
-	// Minor error checking
-	assert(lock != NULL && cv != NULL);
-
 	lock_release(lock);
-	cv->num_of_threads += 1;
-	thread_sleep(cv);
-	lock_acquire(lock);
+	thread_sleep(curthread->t_name);
 	splx(spl);
+	lock_acquire(lock);
 
 	return;
 }
@@ -298,23 +294,22 @@ void
 cv_signal(struct cv *cv, struct lock *lock)
 {
 	assert(lock != NULL && cv != NULL);
-	// if (!lock_do_i_hold(lock)){
-	// 	//kprintf("Woah!\n");
-	// 	return;
-	// }
+	if (!lock_do_i_hold(lock)){
+		//kprintf("Woah!\n");
+		return;
+	}
 
-	// lock_acquire(cv->cv_lock);
-	// void* to_wakeup;
-	// if (cv->num_of_threads > 0){
-	// 	to_wakeup = q_remhead(cv->waiting_line);
-	// 	cv->num_of_threads--;
-	// }
-	// lock_release(cv->cv_lock);
+	lock_acquire(cv->cv_lock);
+	void* to_wakeup;
+	if (cv->num_of_threads > 0){
+		to_wakeup = q_remhead(cv->waiting_line);
+		cv->num_of_threads--;
+	}
+	lock_release(cv->cv_lock);
 
 	int spl;
 	spl = splhigh();
-	cv->num_of_threads -= 1;
-	mono_thread_wakeup(cv);
+	thread_wakeup(to_wakeup);
 	splx(spl);
 	return;
 }
@@ -323,39 +318,34 @@ void
 cv_broadcast(struct cv *cv, struct lock *lock)
 {
 	assert(lock != NULL && cv != NULL);
-	// if (!lock_do_i_hold(lock)){
-	// 	return;
-	// }
+	if (!lock_do_i_hold(lock)){
+		kprintf("Woah!\n");
+		return;
+	}
 
+	lock_acquire(cv->cv_lock);
 	
+	//kprintf("Threads sleeping in cv: %d\n", cv->num_of_threads);
+	//kprintf("Size of queue: %d\n", q_getsize(cv->waiting_line));
+	int i = cv->num_of_threads;
 	int spl;
-	spl = splhigh();
-	cv->num_of_threads = 0;
-	thread_wakeup(cv);
-	splx(spl);
+	while (i > 0){
+		void *ptr = q_remhead(cv->waiting_line);
 
-	// lock_acquire(cv->cv_lock);
-	
-	// //kprintf("Threads sleeping in cv: %d\n", cv->num_of_threads);
-	// //kprintf("Size of queue: %d\n", q_getsize(cv->waiting_line));
-	// int i = cv->num_of_threads;
-	// int spl;
-	// while (i > 0){
-	// 	void *ptr = q_remhead(cv->waiting_line);
-
-	// 	// kprintf("i: %d, waking up: %p \n", i, ptr);
+		// kprintf("i: %d, waking up: %p \n", i, ptr);
 		
-	// 	spl = splhigh();
-	// 	if (thread_hassleepers(ptr)){
-	// 		thread_wakeup(ptr);
-	// 		splx(spl);
-	// 	}
-	// 	else{
-	// 		splx(spl);
-	// 		kprintf("I was not sleeping!\n");
-	// 	}
-	// 	i--;
-	// }
+		spl = splhigh();
+		if (thread_hassleepers(ptr)){
+			thread_wakeup(ptr);
+		}
+		else{
+			kprintf("I was not sleeping!\n");
+		}
+		splx(spl);
+		i--;
+	}
 
-	// lock_release(cv->cv_lock);
+	cv->num_of_threads = 0;
+
+	lock_release(cv->cv_lock);
 }
