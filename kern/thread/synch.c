@@ -146,7 +146,7 @@ lock_destroy(struct lock *lock)
 	// Check if someone is holding the lock
 	int spl;
 	spl = splhigh();
-	assert(lock->flag == 0);
+	assert(thread_hassleepers(lock)==0);
 	splx(spl);
 
 	// Free the lock
@@ -168,13 +168,11 @@ lock_acquire(struct lock *lock)
 	spl = splhigh();
 
 	while (lock->flag == 1){
-		splx(spl);
-		thread_yield();
-		spl = splhigh();
+		thread_sleep(lock);
 	}
 	
-	lock->owner = curthread;
 	lock->flag = 1;
+	lock->owner = curthread;
 	//kprintf("\nI captured the lock %s\n", lock->name);
 
 	splx(spl);
@@ -185,13 +183,14 @@ lock_acquire(struct lock *lock)
 void
 lock_release(struct lock *lock)
 {
-	// Write this
 	int spl;
 	spl = splhigh();
 
-	//kprintf("I released the lock %s\n", lock->name);
+	// Check if lock exists
+	assert(lock != NULL);
 	lock->flag = 0;
 	lock->owner = NULL;
+	thread_wakeup(lock);
 
 	splx(spl);
 }
