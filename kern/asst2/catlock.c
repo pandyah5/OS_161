@@ -72,14 +72,6 @@ catlock(void * unusedpointer,
                         while(turn == 1 || cat_num > 1){
                                 //kprintf("I am just in this inner most while loop t:%d n:%d\n", turn, cat_num);
                                 thread_yield();
-                                // if (iter == 4){
-                                //         thread_exit();
-                                // }
-
-                                // int spl;
-                                // spl = splhigh();
-                                // thread_sleep(&sleep_addr);
-                                // splx(spl);
                         }
 
                         // This is for competing cats, mice won't compete here
@@ -133,11 +125,6 @@ catlock(void * unusedpointer,
                         if (cat_num == 0){
                                 turn = 1;
                         }
-                        
-                        // int spl;
-                        // spl = splhigh();
-                        // thread_wakeup(&sleep_addr);
-                        // splx(spl);
 
                         lock_release(entry_exit_lock);
                         break;
@@ -175,13 +162,6 @@ mouselock(void * unusedpointer,
                 while(1){
                         while(turn == 0){
                                 thread_yield();
-                                // if (iter == 4){
-                                //         thread_exit();
-                                // }
-                                // int spl;
-                                // spl = splhigh();
-                                // thread_sleep(&sleep_addr);
-                                // splx(spl);
                         }
 
                         lock_acquire(entry_exit_lock);
@@ -232,11 +212,6 @@ mouselock(void * unusedpointer,
                         if (mouse_num == 0){
                                 turn = 0;
                         }
-
-                        // int spl;
-                        // spl = splhigh();
-                        // thread_wakeup(&sleep_addr);
-                        // splx(spl);
 
                         lock_release(entry_exit_lock);
                         break;
