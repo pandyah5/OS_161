@@ -17,6 +17,8 @@
 #include <test.h>
 #include <thread.h>
 #include "catmouse.h"
+#include "synch.h"
+#include <machine/spl.h>
 
 /*
  * 
@@ -40,14 +42,107 @@
  *
  */
 
+int turn = 0; // 0 for cats and 1 for mice
+int cat_num = 0; // Number of cats in the area
+int mouse_num = 0; // Number of mice in the area
+
+// Variables for dishes, 0 means available and 1 means busy
+int dish_1 = 0;
+int dish_2 = 0;
+
+struct lock * entry_exit_lock;
+struct lock * cat_num_lock;
+struct lock * dish_lock;
+struct lock * dish_lock_1;
+struct lock * dish_lock_2;
+
+char sleep_addr = 'I';
+
 static
 void
 catlock(void * unusedpointer, 
         unsigned long catnumber)
 {
-        /*
-         * Avoid unused variable warnings.
-         */
+        //kprintf("Cat number %lu entered\n", catnumber);
+        int iter;
+        for(iter = 0; iter < NMEALS; iter++){
+                while(1){
+
+                        // Wait till the area is free for cats or cats finish eating
+                        while(turn == 1 || cat_num > 1){
+                                //kprintf("I am just in this inner most while loop t:%d n:%d\n", turn, cat_num);
+                                thread_yield();
+                                // if (iter == 4){
+                                //         thread_exit();
+                                // }
+
+                                // int spl;
+                                // spl = splhigh();
+                                // thread_sleep(&sleep_addr);
+                                // splx(spl);
+                        }
+
+                        // This is for competing cats, mice won't compete here
+                        lock_acquire(entry_exit_lock);
+                        int repeat = 0;
+                        if (cat_num < 2 && turn == 0){
+                                cat_num += 1;
+                        }
+                        else{
+                                repeat = 1;
+                        }
+                        lock_release(entry_exit_lock);
+
+                        // If we succeeded in entering we move forward else repeat
+                        if (repeat){
+                                //kprintf("Ah we go back to inf while loop. Cat num: %d\n", cat_num);
+                                continue;
+                        }
+
+                        // Now check which dish is available
+                        lock_acquire(dish_lock);
+                        if (dish_1 == 0){
+                                lock_acquire(dish_lock_1);
+                                dish_1 = 1;
+                                lock_release(dish_lock);
+                                const char* name = "cat";
+                                catmouse_eat(name, catnumber, 1, iter);
+                                dish_1 = 0;
+                                lock_release(dish_lock_1);
+                        }
+                        else if(dish_2 == 0){
+                                lock_acquire(dish_lock_2);
+                                dish_2 = 1;
+                                lock_release(dish_lock);
+                                const char* name = "cat";
+                                catmouse_eat(name, catnumber, 2, iter);
+                                dish_2 = 0;
+                                lock_release(dish_lock_2);
+                        }
+                        else{
+                                lock_release(dish_lock);
+                                kprintf("This should not happen! Atleast one dish should be empty.\n");
+                                //continue;
+                        }
+
+                        // This is the exit procedure for cats
+                        lock_acquire(entry_exit_lock);
+                        cat_num -= 1;
+
+                        // The last cat is exiting so the mice can now enter
+                        if (cat_num == 0){
+                                turn = 1;
+                        }
+                        
+                        // int spl;
+                        // spl = splhigh();
+                        // thread_wakeup(&sleep_addr);
+                        // splx(spl);
+
+                        lock_release(entry_exit_lock);
+                        break;
+                }
+        }
 
         (void) unusedpointer;
         (void) catnumber;
@@ -75,9 +170,78 @@ void
 mouselock(void * unusedpointer,
           unsigned long mousenumber)
 {
-        /*
-         * Avoid unused variable warnings.
-         */
+        int iter;
+        for(iter = 0; iter < NMEALS; iter++){
+                while(1){
+                        while(turn == 0){
+                                thread_yield();
+                                // if (iter == 4){
+                                //         thread_exit();
+                                // }
+                                // int spl;
+                                // spl = splhigh();
+                                // thread_sleep(&sleep_addr);
+                                // splx(spl);
+                        }
+
+                        lock_acquire(entry_exit_lock);
+                        int repeat = 0;
+                        if (turn == 1){
+                                mouse_num += 1;
+                        }
+                        else{
+                                repeat = 1;
+                        }
+                        lock_release(entry_exit_lock);
+
+                        // If we succeeded in entering we move forward else repeat
+                        if (repeat){
+                                continue;
+                        }
+
+                        lock_acquire(dish_lock);
+                        if (dish_1 == 0){
+                                lock_acquire(dish_lock_1);
+                                dish_1 = 1;
+                                lock_release(dish_lock);
+                                const char* name = "mouse";
+                                catmouse_eat(name, mousenumber, 1, iter);
+                                dish_1 = 0;
+                                lock_release(dish_lock_1);
+                        }
+                        else if(dish_2 == 0){
+                                lock_acquire(dish_lock_2);
+                                dish_2 = 1;
+                                lock_release(dish_lock);
+                                const char* name = "mouse";
+                                catmouse_eat(name, mousenumber, 2, iter);
+                                dish_2 = 0;
+                                lock_release(dish_lock_2);
+                        }
+                        else{
+                                lock_release(dish_lock);
+                                kprintf("This should not happen! Atleast one dish should be empty.\n");
+                                //continue;
+                        }
+
+                        // This is the exit procedure for mice
+                        lock_acquire(entry_exit_lock);
+                        mouse_num -= 1;
+
+                        // The last cat is exiting so the mice can now enter
+                        if (mouse_num == 0){
+                                turn = 0;
+                        }
+
+                        // int spl;
+                        // spl = splhigh();
+                        // thread_wakeup(&sleep_addr);
+                        // splx(spl);
+
+                        lock_release(entry_exit_lock);
+                        break;
+                }
+        }
         
         (void) unusedpointer;
         (void) mousenumber;
@@ -108,6 +272,12 @@ catmouselock(int nargs,
         /*
          * Start NCATS catlock() threads.
          */
+
+        entry_exit_lock = lock_create("entry_exit_lock");
+        cat_num_lock = lock_create("cat_num_lock");
+        dish_lock = lock_create("dish_lock");
+        dish_lock_1 = lock_create("dish_lock_1");
+        dish_lock_2 = lock_create("dish_lock_2");
 
         for (index = 0; index < NCATS; index++) {
            
