@@ -26,15 +26,15 @@
 #define NCARS 20
 
 // Locks required for the problem
-struct lock * NW_lock;
-struct lock * SW_lock;
-struct lock * NE_lock;
-struct lock * SE_lock;
-struct lock * NUM_CAR_LOCK;
-struct lock * north_road;
-struct lock * south_road;
-struct lock * east_road;
-struct lock * west_road;
+struct semaphore * NW_lock;
+struct semaphore * SW_lock;
+struct semaphore * NE_lock;
+struct semaphore * SE_lock;
+struct semaphore * NUM_CAR_LOCK;
+struct semaphore * north_road;
+struct semaphore * south_road;
+struct semaphore * east_road;
+struct semaphore * west_road;
 
 
 // Global variables needed for this problem
@@ -101,14 +101,14 @@ gostraight(unsigned long cardirection,
                         thread_yield();
                 }
                 int repeat = 0;
-                lock_acquire(NUM_CAR_LOCK);
+                P(NUM_CAR_LOCK);
                 if (num_cars > 2){
                         repeat = 1;
                 }
                 else{
                         num_cars += 1;
                 }
-                lock_release(NUM_CAR_LOCK);
+                V(NUM_CAR_LOCK);
 
                 if (repeat){
                         continue;
@@ -119,82 +119,82 @@ gostraight(unsigned long cardirection,
                         // We are at north and need to reach south
 
                         // Step 1: Acquire NW region
-                        lock_acquire(NW_lock);
+                        P(NW_lock);
                         NW = 1;
                         message(REGION1, carnumber, cardirection, 2);
 
                         // Step 2: Acquire SW region and release NW region
-                        lock_acquire(SW_lock);
+                        P(SW_lock);
                         NW = 0;
                         SW = 1;
                         message(REGION2, carnumber, cardirection, 2);
-                        lock_release(NW_lock);
+                        V(NW_lock);
 
                         // Step 3: Leave
                         message(LEAVING, carnumber, cardirection, 2);
                         SW = 0;
-                        lock_release(SW_lock);
+                        V(SW_lock);
                 }
                 else if (cardirection == 1){
                         // We are at east and need to go to west
 
                         // Step 1: Acquire NE region
-                        lock_acquire(NE_lock);
+                        P(NE_lock);
                         NE = 1;
                         message(REGION1, carnumber, cardirection, 3);
 
                         // Step 2: Acquire the NW region and leave NE region
-                        lock_acquire(NW_lock);
+                        P(NW_lock);
                         NE = 0;
                         NW = 1;
                         message(REGION2, carnumber, cardirection, 3);
-                        lock_release(NE_lock);
+                        V(NE_lock);
 
                         // Step 3: Leave
                         message(LEAVING, carnumber, cardirection, 3);
                         NW = 0;
-                        lock_release(NW_lock);
+                        V(NW_lock);
                 }
                 else if (cardirection == 2){
                         // We are at south going to the north
-                        lock_acquire(SE_lock);
+                        P(SE_lock);
                         SE = 1;
                         message(REGION1, carnumber, cardirection, 0);
 
-                        lock_acquire(NE_lock);
+                        P(NE_lock);
                         SE = 0;
                         NE = 1;
                         message(REGION2, carnumber, cardirection, 0);
-                        lock_release(SE_lock);
+                        V(SE_lock);
 
                         message(LEAVING, carnumber, cardirection, 0);
                         NE = 0;
-                        lock_release(NE_lock);
+                        V(NE_lock);
                 }
                 else if (cardirection == 3){
                         // We are at west and going to the east
-                        lock_acquire(SW_lock);
+                        P(SW_lock);
                         SW = 1;
                         message(REGION1, carnumber, cardirection, 1);
 
-                        lock_acquire(SE_lock);
+                        P(SE_lock);
                         SW = 0;
                         SE = 1;
                         message(REGION2, carnumber, cardirection, 1);
-                        lock_release(SW_lock);
+                        V(SW_lock);
 
                         message(LEAVING, carnumber, cardirection, 1);
                         SE = 0;
-                        lock_release(SE_lock);
+                        V(SE_lock);
                 }
                 else{
                         kprintf("Why is cardirection not in range (0-3).\n");
                         continue;
                 }
 
-                lock_acquire(NUM_CAR_LOCK);
+                P(NUM_CAR_LOCK);
                 num_cars -= 1;
-                lock_release(NUM_CAR_LOCK);
+                V(NUM_CAR_LOCK);
                 break;
         }
 }
@@ -230,14 +230,14 @@ turnleft(unsigned long cardirection,
                         thread_yield();
                 }
                 int repeat = 0;
-                lock_acquire(NUM_CAR_LOCK);
+                P(NUM_CAR_LOCK);
                 if (num_cars > 2){
                         repeat = 1;
                 }
                 else{
                         num_cars += 1;
                 }
-                lock_release(NUM_CAR_LOCK);
+                V(NUM_CAR_LOCK);
 
                 if (repeat){
                         continue;
@@ -247,100 +247,100 @@ turnleft(unsigned long cardirection,
                 if (cardirection == 0){
                         // We are at north and need to go to the east
 
-                        lock_acquire(NW_lock);
+                        P(NW_lock);
                         NW = 1;
                         message(REGION1, carnumber, cardirection, 1);
 
-                        lock_acquire(SW_lock);
+                        P(SW_lock);
                         NW = 0;
                         SW = 1;
                         message(REGION2, carnumber, cardirection, 1);
-                        lock_release(NW_lock);
+                        V(NW_lock);
 
-                        lock_acquire(SE_lock);
+                        P(SE_lock);
                         SW = 0;
                         SE = 1;
                         message(REGION3, carnumber, cardirection, 1);
-                        lock_release(SW_lock);
+                        V(SW_lock);
 
                         message(LEAVING, carnumber, cardirection, 1);
                         SE = 0;
-                        lock_release(SE_lock);
+                        V(SE_lock);
                 }
                 else if (cardirection == 1){
                         // We are at east and need to go to south
-                        lock_acquire(NE_lock);
+                        P(NE_lock);
                         NE = 1;
                         message(REGION1, carnumber, cardirection, 2);
 
-                        lock_acquire(NW_lock);
+                        P(NW_lock);
                         NE = 0;
                         NW = 1;
                         message(REGION2, carnumber, cardirection, 2);
-                        lock_release(NE_lock);
+                        V(NE_lock);
 
-                        lock_acquire(SW_lock);
+                        P(SW_lock);
                         NW = 0;
                         SW = 1;
                         message(REGION3, carnumber, cardirection, 2);
-                        lock_release(NW_lock);
+                        V(NW_lock);
 
                         message(LEAVING, carnumber, cardirection, 2);
                         SW = 0;
-                        lock_release(SW_lock);
+                        V(SW_lock);
                 }
                 else if (cardirection == 2){
                         // We are at south and need to go to west
-                        lock_acquire(SE_lock);
+                        P(SE_lock);
                         SE = 1;
                         message(REGION1, carnumber, cardirection, 3);
 
-                        lock_acquire(NE_lock);
+                        P(NE_lock);
                         SE = 0;
                         NE = 1;
                         message(REGION2, carnumber, cardirection, 3);
-                        lock_release(SE_lock);
+                        V(SE_lock);
 
-                        lock_acquire(NW_lock);
+                        P(NW_lock);
                         NE = 0;
                         NW = 1;
                         message(REGION3, carnumber, cardirection, 3);
-                        lock_release(NE_lock);
+                        V(NE_lock);
 
                         message(LEAVING, carnumber, cardirection, 3);
                         NW = 0;
-                        lock_release(NW_lock);
+                        V(NW_lock);
                 }
                 else if (cardirection == 3){
                         // We are at west and need to go to north
-                        lock_acquire(SW_lock);
+                        P(SW_lock);
                         SW = 1;
                         message(REGION1, carnumber, cardirection, 0);
 
-                        lock_acquire(SE_lock);
+                        P(SE_lock);
                         SW = 0;
                         SE = 1;
                         message(REGION2, carnumber, cardirection, 0);
-                        lock_release(SW_lock);
+                        V(SW_lock);
 
-                        lock_acquire(NE_lock);
+                        P(NE_lock);
                         SE = 0;
                         NE = 1;
                         message(REGION3, carnumber, cardirection, 0);
-                        lock_release(SE_lock);
+                        V(SE_lock);
 
                         message(LEAVING, carnumber, cardirection, 0);
                         NE = 0;
-                        lock_release(NE_lock);
+                        V(NE_lock);
                 }
                 else{
                         kprintf("Why is cardirection not in range (0-3).\n");
                         continue;
                 }
 
-                lock_acquire(NUM_CAR_LOCK);
+                P(NUM_CAR_LOCK);
                 num_cars -= 1;
-                lock_release(NUM_CAR_LOCK);
+                V(NUM_CAR_LOCK);
 
                 break;
         }
@@ -377,14 +377,14 @@ turnright(unsigned long cardirection,
                         thread_yield();
                 }
                 int repeat = 0;
-                lock_acquire(NUM_CAR_LOCK);
+                P(NUM_CAR_LOCK);
                 if (num_cars > 2){
                         repeat = 1;
                 }
                 else{
                         num_cars += 1;
                 }
-                lock_release(NUM_CAR_LOCK);
+                V(NUM_CAR_LOCK);
 
                 if (repeat){
                         continue;
@@ -393,43 +393,43 @@ turnright(unsigned long cardirection,
                 // Decide which direction to go next
                 if (cardirection == 0){
                         // We are at north and need to go to west
-                        lock_acquire(NW_lock);
+                        P(NW_lock);
                         NW = 1;
                         message(REGION1, carnumber, cardirection, 3);
 
                         message(LEAVING, carnumber, cardirection, 3);
                         NW = 0;
-                        lock_release(NW_lock);
+                        V(NW_lock);
                 }
                 else if (cardirection == 1){
                         // We are at east and need to go to north
-                        lock_acquire(NE_lock);
+                        P(NE_lock);
                         NE = 1;
                         message(REGION1, carnumber, cardirection, 0);
 
                         message(LEAVING, carnumber, cardirection, 0);
                         NE = 0;
-                        lock_release(NE_lock);
+                        V(NE_lock);
                 }
                 else if (cardirection == 2){
                         // We are at south and we need to go to east
-                        lock_acquire(SE_lock);
+                        P(SE_lock);
                         SE = 1;
                         message(REGION1, carnumber, cardirection, 1);
 
                         message(LEAVING, carnumber, cardirection, 1);
                         SE = 0;
-                        lock_release(SE_lock);
+                        V(SE_lock);
                 }
                 else if (cardirection == 3){
                         // We are at west and need to go to south
-                        lock_acquire(SW_lock);
+                        P(SW_lock);
                         SW = 1;
                         message(REGION1, carnumber, cardirection, 2);
 
                         message(LEAVING, carnumber, cardirection, 2);
                         SW = 0;
-                        lock_release(SW_lock);
+                        V(SW_lock);
                 }
                 else{
                         kprintf("Why is cardirection not in range (0-3).\n");
@@ -437,9 +437,9 @@ turnright(unsigned long cardirection,
                 }
 
                 // Exit
-                lock_acquire(NUM_CAR_LOCK);
+                P(NUM_CAR_LOCK);
                 num_cars -= 1;
-                lock_release(NUM_CAR_LOCK);
+                V(NUM_CAR_LOCK);
 
                 break;
         }
@@ -497,40 +497,40 @@ approachintersection(void * unusedpointer,
                         // Choose the destination
                         dest_direction = (cardirection + 2) % 4;
 
-                        lock_acquire(north_road);
+                        P(north_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Go straight
                         gostraight(cardirection, carnumber);
 
-                        lock_release(north_road);
+                        V(north_road);
                 }
                 else if (journey_type == 1){
                         // Choose the destination
                         dest_direction = (cardirection + 1) % 4;
 
-                        lock_acquire(north_road);
+                        P(north_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Turn Left
                         turnleft(cardirection, carnumber);
 
-                        lock_release(north_road);
+                        V(north_road);
                 }
                 else{
                         // Choose the destination
                         dest_direction = (cardirection + 3) % 4;
 
-                        lock_acquire(north_road);
+                        P(north_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Turn right
                         turnright(cardirection, carnumber);
 
-                        lock_release(north_road);
+                        V(north_road);
                 }
         }
         else if (cardirection == 1){
@@ -538,40 +538,40 @@ approachintersection(void * unusedpointer,
                         // Choose the destination
                         dest_direction = (cardirection + 2) % 4;
 
-                        lock_acquire(east_road);
+                        P(east_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Go straight
                         gostraight(cardirection, carnumber);
 
-                        lock_release(east_road);
+                        V(east_road);
                 }
                 else if (journey_type == 1){
                         // Choose the destination
                         dest_direction = (cardirection + 1) % 4;
 
-                        lock_acquire(east_road);
+                        P(east_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Turn Left
                         turnleft(cardirection, carnumber);
 
-                        lock_release(east_road);
+                        V(east_road);
                 }
                 else{
                         // Choose the destination
                         dest_direction = (cardirection + 3) % 4;
 
-                        lock_acquire(east_road);
+                        P(east_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Turn right
                         turnright(cardirection, carnumber);
 
-                        lock_release(east_road);
+                        V(east_road);
                 }
         }
         else if (cardirection == 2){
@@ -579,40 +579,40 @@ approachintersection(void * unusedpointer,
                         // Choose the destination
                         dest_direction = (cardirection + 2) % 4;
 
-                        lock_acquire(south_road);
+                        P(south_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Go straight
                         gostraight(cardirection, carnumber);
 
-                        lock_release(south_road);
+                        V(south_road);
                 }
                 else if (journey_type == 1){
                         // Choose the destination
                         dest_direction = (cardirection + 1) % 4;
 
-                        lock_acquire(south_road);
+                        P(south_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Turn Left
                         turnleft(cardirection, carnumber);
 
-                        lock_release(south_road);
+                        V(south_road);
                 }
                 else{
                         // Choose the destination
                         dest_direction = (cardirection + 3) % 4;
 
-                        lock_acquire(south_road);
+                        P(south_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Turn right
                         turnright(cardirection, carnumber);
 
-                        lock_release(south_road);
+                        V(south_road);
                 }
         }
         else if (cardirection == 3){
@@ -620,40 +620,40 @@ approachintersection(void * unusedpointer,
                         // Choose the destination
                         dest_direction = (cardirection + 2) % 4;
 
-                        lock_acquire(west_road);
+                        P(west_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Go straight
                         gostraight(cardirection, carnumber);
 
-                        lock_release(west_road);
+                        V(west_road);
                 }
                 else if (journey_type == 1){
                         // Choose the destination
                         dest_direction = (cardirection + 1) % 4;
 
-                        lock_acquire(west_road);
+                        P(west_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Turn Left
                         turnleft(cardirection, carnumber);
 
-                        lock_release(west_road);
+                        V(west_road);
                 }
                 else{
                         // Choose the destination
                         dest_direction = (cardirection + 3) % 4;
 
-                        lock_acquire(west_road);
+                        P(west_road);
                         // Approaching intersection
                         message(APPROACHING, carnumber, cardirection, dest_direction);
 
                         // Turn right
                         turnright(cardirection, carnumber);
 
-                        lock_release(west_road);
+                        V(west_road);
                 }
         }
         else{
@@ -685,15 +685,15 @@ createcars(int nargs,
         int index, error;
 
         // Initialize the locks
-        NW_lock = lock_create("nw_lock");
-        SW_lock = lock_create("sw_lock");
-        NE_lock = lock_create("ne_lock");
-        SE_lock = lock_create("se_lock");
-        NUM_CAR_LOCK = lock_create("num_car_lock");
-        north_road = lock_create("north_road_lock");
-        east_road = lock_create("east_road_lock");
-        west_road = lock_create("west_road_lock");
-        south_road = lock_create("south_road_lock");
+        NW_lock = sem_create("nw_lock", 1);
+        SW_lock = sem_create("sw_lock", 1);
+        NE_lock = sem_create("ne_lock", 1);
+        SE_lock = sem_create("se_lock", 1);
+        NUM_CAR_LOCK = sem_create("num_car_lock", 1);
+        north_road = sem_create("north_road_lock", 1);
+        east_road = sem_create("east_road_lock", 1);
+        west_road = sem_create("west_road_lock", 1);
+        south_road = sem_create("south_road_lock", 1);
     
         /*
          * Start NCARS approachintersection() threads.
